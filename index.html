@@ -371,6 +371,20 @@
     color: var(--muted);
     font-family: 'Sarabun', sans-serif;
   }
+  .no-id-check {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px; cursor: pointer;
+    font-size: 0.78rem; color: var(--muted);
+    font-family: 'Sarabun', sans-serif;
+    user-select: none;
+  }
+  .no-id-check input[type="checkbox"] {
+    width: 16px; height: 16px; cursor: pointer;
+    accent-color: var(--mustard);
+    flex-shrink: 0;
+  }
+  .no-id-check span { line-height: 1.4; }
+  .field-disabled { opacity: 0.4; pointer-events: none; }
   @media (max-width: 620px) {
     .digit-box { width: 28px; height: 34px; font-size: 0.88rem; border-radius: 6px; }
     .digit-box-sep { font-size: 0.85rem; padding: 0 1px; }
@@ -739,14 +753,18 @@
         </div>
 
         <div class="field" style="margin-bottom:20px">
-          <label>รหัสประจำตัวนักศึกษา (10 หลัก) <span class="req">*</span></label>
-          <div class="digit-box-wrap">
+          <label>รหัสประจำตัวนักศึกษา (10 หลัก)</label>
+          <div class="digit-box-wrap" id="sid_wrap">
             <div class="digit-boxes" id="sid_boxes" onclick="focusDigitInput('sid_real')"></div>
             <input type="text" id="sid_real" class="digit-real-input"
               inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="off"
               oninput="updateDigitBoxes('sid_real','student_id','sid_boxes',10,[])" onfocus="focusDigitInput('sid_real')" onblur="blurDigitInput('sid_real')">
             <div class="digit-box-hint">แตะที่กล่องเพื่อกรอกตัวเลข</div>
           </div>
+          <label class="no-id-check">
+            <input type="checkbox" id="no_student_id" onchange="toggleNoId('student_id','sid_wrap','no_student_id')">
+            <span>ยังไม่มีรหัสประจำตัวนักศึกษา (นักศึกษาใหม่)</span>
+          </label>
           <input type="hidden" id="student_id" name="student_id">
         </div>
 
@@ -755,9 +773,13 @@
             <label>ศกร.ตำบล / ศรช.ตำบล</label>
             <input type="text" id="skr_tambon" name="skr_tambon" placeholder="ชื่อ ศกร./ศรช.">
           </div>
-          <div class="field">
+          <div class="field" id="group_code_wrap">
             <label>รหัสกลุ่ม</label>
             <input type="text" id="group_code" name="group_code" placeholder="รหัสกลุ่ม">
+            <label class="no-id-check" style="margin-top:6px">
+              <input type="checkbox" id="no_group_code" onchange="toggleNoId('group_code','group_code_wrap','no_group_code')">
+              <span>ยังไม่มีรหัสกลุ่ม</span>
+            </label>
           </div>
         </div>
       </div>
@@ -1077,7 +1099,7 @@
 
 <!-- ═ SCRIPT ════════════════════════════ -->
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0wsl2yN40veXj4wnQz1KwGoXMf_1Nu5wsIL7AAEDhp3WIwf6AFP1jCsNd26v-83S1/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8khEBQ35XKcuefvdS1yu_Tk5YD4VQL33LxMsLrb2UEjp-cNpXsRHkHhvD6HR5x4ioKA/exec';
 const TOTAL = 5;
 const LABELS = ['ลงทะเบียน','ประวัติ','การศึกษา','ที่อยู่','รูปถ่าย'];
 const FULL_LABELS = ['ข้อมูลการลงทะเบียน','ประวัตินักศึกษา','การศึกษาเดิม','ที่อยู่','รูปถ่าย & ส่ง'];
@@ -1147,9 +1169,10 @@ function validate(s) {
     if (!document.getElementById('study_level').value) {
       alert('กรุณาเลือกระดับการศึกษา'); return false;
     }
+    const noSid = document.getElementById('no_student_id').checked;
     const sid = document.getElementById('student_id').value;
-    if (!sid || sid.length !== 10 || !/^\d{10}$/.test(sid)) {
-      alert('กรุณากรอกรหัสประจำตัวนักศึกษา 10 หลักให้ครบ'); return false;
+    if (!noSid && sid && sid.length > 0 && !/^\d{10}$/.test(sid)) {
+      alert('กรอกรหัสประจำตัวนักศึกษาให้ครบ 10 หลัก หรือติ๊กว่าไม่มีรหัส'); return false;
     }
   }
   if (s === 2) {
@@ -1434,6 +1457,25 @@ function resetForm() {
   // Go back to step 1
   done.clear();
   showStep(1);
+}
+
+/* ── TOGGLE NO-ID ── */
+function toggleNoId(fieldId, wrapId, checkId) {
+  const checked = document.getElementById(checkId).checked;
+  const wrap    = document.getElementById(wrapId);
+  const field   = document.getElementById(fieldId);
+
+  if (checked) {
+    wrap.classList.add('field-disabled');
+    field.value = '';
+    // clear digit boxes if student_id
+    if (fieldId === 'student_id') {
+      const real = document.getElementById('sid_real');
+      if (real) { real.value = ''; updateDigitBoxes('sid_real','student_id','sid_boxes',10,[]); }
+    }
+  } else {
+    wrap.classList.remove('field-disabled');
+  }
 }
 
 /* ── DIGIT BOX DISPLAY ── */
